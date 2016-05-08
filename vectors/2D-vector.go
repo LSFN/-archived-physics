@@ -1,9 +1,5 @@
 package vectors
 
-import (
-	"math"
-)
-
 type Vector2 struct {
 	x, y float64
 }
