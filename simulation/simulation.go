@@ -16,19 +16,24 @@ type Simulatable interface {
 }
 
 type Simulation struct {
-	simulatables   []Simulatable
-	simulationTime time.Time
-	ticker         time.Ticker
+	Simulatables        []Simulatable
+	simulationTime      time.Time
+	ticker              *time.Ticker
+	sendCycleFinished   chan<- time.Time
+	CycleFinishedTicker <-chan time.Time
 }
 
 func NewSimulation() *Simulation {
 	s := new(Simulation)
-	s.simulatables = make([]Simulatable, 0)
+	s.Simulatables = make([]Simulatable, 0)
+	outputChan := make(chan time.Time, 1) // Similar to time.Timer, buffer 1 tick
+	s.sendCycleFinished = outputChan
+	s.CycleFinishedTicker = outputChan
 	return s
 }
 
 func (s *Simulation) AddSimulatable(thing Simulatable) {
-	s.simulatables = append(s.simulatables, thing)
+	s.Simulatables = append(s.Simulatables, thing)
 }
 
 func (s *Simulation) StartTime() {
@@ -39,9 +44,10 @@ func (s *Simulation) StartTime() {
 			now := time.Now()
 			timeDifference := now.Sub(s.simulationTime).Seconds()
 			s.simulationTime = now
-			for simObj := range s.simulatables {
+			for _, simObj := range s.Simulatables {
 				simObj.Move(timeDifference)
 			}
+			s.sendCycleFinished <- tick
 		}
 	}()
 }
